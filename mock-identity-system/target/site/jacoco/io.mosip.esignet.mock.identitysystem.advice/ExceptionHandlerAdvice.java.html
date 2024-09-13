@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExceptionHandlerAdvice.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">mock-identity-system</a> &gt; <a href="index.source.html" class="el_package">io.mosip.esignet.mock.identitysystem.advice</a> &gt; <span class="el_source">ExceptionHandlerAdvice.java</span></div><h1>ExceptionHandlerAdvice.java</h1><pre class="source lang-java linenums">package io.mosip.esignet.mock.identitysystem.advice;
+
+import static io.mosip.esignet.mock.identitysystem.util.ErrorConstants.INVALID_REQUEST;
+import static io.mosip.esignet.mock.identitysystem.util.ErrorConstants.UNKNOWN_ERROR;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+
+import org.springframework.beans.TypeMismatchException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.NoSuchMessageException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import io.mosip.esignet.mock.identitysystem.dto.Error;
+import io.mosip.esignet.mock.identitysystem.dto.ResponseWrapper;
+import io.mosip.esignet.mock.identitysystem.exception.MockIdentityException;
+import io.mosip.esignet.mock.identitysystem.util.HelperUtil;
+import lombok.extern.slf4j.Slf4j;
+
+<span class="fc" id="L38">@Slf4j</span>
+@ControllerAdvice
+<span class="fc" id="L40">public class ExceptionHandlerAdvice extends ResponseEntityExceptionHandler {</span>
+
+    @Autowired
+    private MessageSource messageSource;
+
+    @Override
+    protected ResponseEntity&lt;Object&gt; handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpHeaders headers,
+                                                                  HttpStatus status, WebRequest request) {
+<span class="nc" id="L48">        return handleExceptions(ex, request);</span>
+    }
+
+    @Override
+    protected ResponseEntity&lt;Object&gt; handleHttpMediaTypeNotAcceptable(
+            HttpMediaTypeNotAcceptableException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+<span class="nc" id="L54">        return handleExceptions(ex, request);</span>
+    }
+
+    @Override
+    protected ResponseEntity&lt;Object&gt; handleMissingServletRequestParameter(
+            MissingServletRequestParameterException ex,
+            HttpHeaders headers,
+            HttpStatus status,
+            WebRequest request) {
+<span class="nc" id="L63">        return handleExceptions(ex, request);</span>
+    }
+
+    @Override
+    protected ResponseEntity&lt;Object&gt; handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex,
+            HttpHeaders headers,
+            HttpStatus status,
+            WebRequest request) {
+<span class="fc" id="L72">        return handleExceptions(ex, request);</span>
+    }
+
+    @Override
+    protected ResponseEntity&lt;Object&gt; handleTypeMismatch(TypeMismatchException ex, HttpHeaders headers,
+                                                        HttpStatus status, WebRequest request) {
+<span class="nc" id="L78">        return handleExceptions(ex, request);</span>
+    }
+
+
+	@ExceptionHandler(value = { Exception.class, RuntimeException.class })
+    public ResponseEntity handleExceptions(Exception ex, WebRequest request) {
+<span class="fc" id="L84">        log.error(&quot;Unhandled exception encountered in handler advice&quot;, ex);</span>
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">        if(ex instanceof MethodArgumentNotValidException) {</span>
+<span class="fc" id="L86">            List&lt;Error&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">            for (FieldError error : ((MethodArgumentNotValidException) ex).getBindingResult().getFieldErrors()) {</span>
+<span class="fc" id="L88">                errors.add(new Error(error.getDefaultMessage(), error.getField() + &quot;: &quot; + error.getDefaultMessage()));</span>
+<span class="fc" id="L89">            }</span>
+<span class="fc" id="L90">            return new ResponseEntity&lt;ResponseWrapper&gt;(getResponseWrapper(errors), HttpStatus.OK);</span>
+        }
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if(ex instanceof ConstraintViolationException) {</span>
+<span class="nc" id="L93">            List&lt;Error&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L94">            Set&lt;ConstraintViolation&lt;?&gt;&gt; violations = ((ConstraintViolationException) ex).getConstraintViolations();</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">            for(ConstraintViolation&lt;?&gt; cv : violations) {</span>
+<span class="nc" id="L96">                errors.add(new Error(INVALID_REQUEST,cv.getPropertyPath().toString() + &quot;: &quot; + cv.getMessage()));</span>
+<span class="nc" id="L97">            }</span>
+<span class="nc" id="L98">            return new ResponseEntity&lt;ResponseWrapper&gt;(getResponseWrapper(errors), HttpStatus.OK);</span>
+        }
+<span class="nc bnc" id="L100" title="All 2 branches missed.">        if(ex instanceof MissingServletRequestParameterException) {</span>
+<span class="nc" id="L101">            return new ResponseEntity&lt;ResponseWrapper&gt;(getResponseWrapper(INVALID_REQUEST, ex.getMessage()),</span>
+                    HttpStatus.OK);
+        }
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if(ex instanceof HttpMediaTypeNotAcceptableException) {</span>
+<span class="nc" id="L105">            return new ResponseEntity&lt;ResponseWrapper&gt;(getResponseWrapper(INVALID_REQUEST, ex.getMessage()),</span>
+                    HttpStatus.OK);
+        }
+<span class="nc bnc" id="L108" title="All 2 branches missed.">		if (ex instanceof MockIdentityException) {</span>
+<span class="nc" id="L109">			String errorCode = ((MockIdentityException) ex).getErrorCode();</span>
+<span class="nc" id="L110">			return new ResponseEntity&lt;ResponseWrapper&gt;(getResponseWrapper(errorCode, getMessage(errorCode)),</span>
+					HttpStatus.OK);
+		}
+<span class="nc" id="L113">        return new ResponseEntity&lt;ResponseWrapper&gt;(getResponseWrapper(UNKNOWN_ERROR, ex.getMessage()), HttpStatus.OK);</span>
+    }
+
+    private ResponseWrapper getResponseWrapper(String errorCode, String errorMessage) {
+<span class="nc" id="L117">        Error error = new Error();</span>
+<span class="nc" id="L118">        error.setErrorCode(errorCode);</span>
+<span class="nc" id="L119">		error.setMessage(errorMessage);</span>
+<span class="nc" id="L120">        return getResponseWrapper(Arrays.asList(error));</span>
+    }
+
+    private ResponseWrapper getResponseWrapper(List&lt;Error&gt; errors) {
+<span class="fc" id="L124">        ResponseWrapper responseWrapper = new ResponseWrapper&lt;&gt;();</span>
+<span class="fc" id="L125">		responseWrapper.setResponseTime(HelperUtil.getCurrentUTCDateTime());</span>
+<span class="fc" id="L126">        responseWrapper.setErrors(errors);</span>
+<span class="fc" id="L127">        return responseWrapper;</span>
+    }
+
+    private String getMessage(String errorCode) {
+        try {
+<span class="nc" id="L132">            messageSource.getMessage(errorCode, null, Locale.getDefault());</span>
+<span class="nc" id="L133">        } catch (NoSuchMessageException ex) {</span>
+<span class="nc" id="L134">            log.error(&quot;Message not found in the i18n bundle&quot;, ex);</span>
+<span class="nc" id="L135">        }</span>
+<span class="nc" id="L136">        return errorCode;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

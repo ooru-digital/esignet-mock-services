@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: io.mosip.esignet.mock.identitysystem.service.impl.AuthenticationServiceImplTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.058 s - in io.mosip.esignet.mock.identitysystem.service.impl.AuthenticationServiceImplTest

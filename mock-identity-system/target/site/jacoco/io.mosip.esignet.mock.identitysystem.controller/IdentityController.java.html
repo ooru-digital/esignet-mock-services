@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IdentityController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">mock-identity-system</a> &gt; <a href="index.source.html" class="el_package">io.mosip.esignet.mock.identitysystem.controller</a> &gt; <span class="el_source">IdentityController.java</span></div><h1>IdentityController.java</h1><pre class="source lang-java linenums">package io.mosip.esignet.mock.identitysystem.controller;
+
+import javax.validation.Valid;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import io.mosip.esignet.mock.identitysystem.dto.IdentityData;
+import io.mosip.esignet.mock.identitysystem.dto.IdentityStatus;
+import io.mosip.esignet.mock.identitysystem.dto.RequestWrapper;
+import io.mosip.esignet.mock.identitysystem.dto.ResponseWrapper;
+import io.mosip.esignet.mock.identitysystem.exception.MockIdentityException;
+import io.mosip.esignet.mock.identitysystem.service.IdentityService;
+import io.mosip.esignet.mock.identitysystem.util.HelperUtil;
+
+
+@RestController
+@RequestMapping(&quot;/&quot;)
+<span class="fc" id="L25">public class IdentityController {</span>
+
+	@Autowired
+	private IdentityService identityService;
+
+	@PostMapping(value = &quot;identity&quot;, consumes = { MediaType.APPLICATION_JSON_VALUE }, produces = {
+			MediaType.APPLICATION_JSON_VALUE })
+	public ResponseWrapper&lt;IdentityStatus&gt; createIdentity
+	(@Valid @RequestBody RequestWrapper&lt;IdentityData&gt; requestWrapper) throws MockIdentityException {
+
+<span class="fc" id="L35">		ResponseWrapper response = new ResponseWrapper&lt;IdentityStatus&gt;();</span>
+<span class="fc" id="L36">		IdentityStatus identityStatus = new IdentityStatus();</span>
+<span class="fc" id="L37">		identityService.addIdentity(requestWrapper.getRequest());</span>
+<span class="fc" id="L38">		identityStatus.setStatus(&quot;mock identity data created successfully&quot;);</span>
+<span class="fc" id="L39">		response.setResponse(identityStatus);</span>
+<span class="fc" id="L40">		response.setResponseTime(HelperUtil.getCurrentUTCDateTime());</span>
+<span class="fc" id="L41">		return response;</span>
+	}
+	
+	@GetMapping(value = &quot;identity/{individualId}&quot;)
+	public ResponseWrapper&lt;IdentityData&gt; getIdentity(@PathVariable(value = &quot;individualId&quot;) String individualId)
+			throws MockIdentityException {
+<span class="fc" id="L47">		ResponseWrapper&lt;IdentityData&gt; response = new ResponseWrapper&lt;&gt;();</span>
+<span class="fc" id="L48">		response.setResponse(identityService.getIdentity(individualId));</span>
+<span class="fc" id="L49">		response.setResponseTime(HelperUtil.getCurrentUTCDateTime());</span>
+<span class="fc" id="L50">		return response;	</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>KycAuth.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">mock-identity-system</a> &gt; <a href="index.source.html" class="el_package">io.mosip.esignet.mock.identitysystem.entity</a> &gt; <span class="el_source">KycAuth.java</span></div><h1>KycAuth.java</h1><pre class="source lang-java linenums">package io.mosip.esignet.mock.identitysystem.entity;
+
+import io.mosip.esignet.mock.identitysystem.dto.Valid;
+import lombok.*;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import java.time.LocalDateTime;
+
+<span class="fc" id="L12">@AllArgsConstructor</span>
+<span class="fc" id="L13">@NoArgsConstructor</span>
+<span class="nc" id="L14">@Setter</span>
+@Getter
+@Entity
+@Table(name=&quot;kyc_auth&quot;, schema = &quot;mockidentitysystem&quot;)
+public class KycAuth {
+    @Id
+    @Column(name=&quot;kyc_token&quot;)
+<span class="fc" id="L21">    private String kycToken;</span>
+    @Column(name=&quot;partner_specific_user_token&quot;)
+<span class="fc" id="L23">    private String partnerSpecificUserToken;</span>
+    @Column(name=&quot;response_time&quot;)
+<span class="nc" id="L25">    private LocalDateTime responseTime;</span>
+    @Column(name=&quot;validity&quot;)
+<span class="nc" id="L27">    private Valid validity;</span>
+    @Column(name=&quot;transaction_id&quot;)
+<span class="nc" id="L29">    private String transactionId;</span>
+    @Column(name=&quot;individual_id&quot;)
+<span class="nc" id="L31">    private String individualId;</span>
+
+<span class="nc" id="L33">    public KycAuth(String s, String s1, LocalDateTime parse, Valid active) {</span>
+
+<span class="nc" id="L35">    }</span>
+
+
+}
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>

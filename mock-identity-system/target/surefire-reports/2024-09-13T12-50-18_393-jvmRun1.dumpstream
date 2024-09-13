@@ -1,0 +1,87 @@
+# Created at 2024-09-13T12:50:24.387
+Corrupted STDOUT by directly writing to native stream in forked JVM 1. Stream '{"@timestamp":"2024-09-13T12:50:24.380+05:30","@version":"1","message":"Neither @ContextConfiguration nor @ContextHierarchy found for test class [io.mosip.esignet.mock.identitysystem.controller.IdentityControllerTest], using SpringBootContextLoader","logger_name":"org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTestContextBootstrapper","thread_name":"main","level":"INFO","level_value":20000}'.
+
+# Created at 2024-09-13T12:50:24.390
+Corrupted STDOUT by directly writing to native stream in forked JVM 1. Stream '{"@timestamp":"2024-09-13T12:50:24.390+05:30","@version":"1","message":"Could not detect default resource locations for test class [io.mosip.esignet.mock.identitysystem.controller.IdentityControllerTest]: no resource found for suffixes {-context.xml, Context.groovy}.","logger_name":"org.springframework.test.context.support.AbstractContextLoader","thread_name":"main","level":"INFO","level_value":20000}'.
+
+# Created at 2024-09-13T12:50:24.391
+Corrupted STDOUT by directly writing to native stream in forked JVM 1. Stream '{"@timestamp":"2024-09-13T12:50:24.391+05:30","@version":"1","message":"Could not detect default configuration classes for test class [io.mosip.esignet.mock.identitysystem.controller.IdentityControllerTest]: IdentityControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.","logger_name":"org.springframework.test.context.support.AnnotationConfigContextLoaderUtils","thread_name":"main","level":"INFO","level_value":20000}'.
+
+# Created at 2024-09-13T12:50:24.506
+Corrupted STDOUT by directly writing to native stream in forked JVM 1. Stream '{"@timestamp":"2024-09-13T12:50:24.505+05:30","@version":"1","message":"Found @SpringBootConfiguration io.mosip.esignet.mock.identitysystem.MockIdentitySystemApplication for test class io.mosip.esignet.mock.identitysystem.controller.IdentityControllerTest","logger_name":"org.springframework.boot.test.context.SpringBootTestContextBootstrapper","thread_name":"main","level":"INFO","level_value":20000}'.
+
+# Created at 2024-09-13T12:50:24.508
+Corrupted STDOUT by directly writing to native stream in forked JVM 1. Stream '{"@timestamp":"2024-09-13T12:50:24.507+05:30","@version":"1","message":"Loaded default TestExecutionListener class names from location [META-INF/spring.factories]: [org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener, org.springframework.boot.test.mock.mockito.ResetMocksTestExecutionListener, org.springframework.boot.test.autoconfigure.restdocs.RestDocsTestExecutionListener, org.springframework.boot.test.autoconfigure.web.client.MockRestServiceServerResetTestExecutionListener, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrintOnlyOnFailureTestExecutionListener, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverTestExecutionListener, org.springframework.boot.test.autoconfigure.webservices.client.MockWebServiceServerTestExecutionListener, org.springframework.test.context.web.ServletTestExecutionListener, org.springframework.test.context.support.DirtiesContextBeforeModesTestExecutionListener, org.springframework.test.context.support.DependencyInjectionTestExecutionListener, org.springframework.test.context.support.DirtiesContextTestExecutionListener, org.springframework.test.context.transaction.TransactionalTestExecutionListener, org.springframework.test.context.jdbc.SqlScriptsTestExecutionListener, org.springframework.test.context.event.EventPublishingTestExecutionListener]","logger_name":"org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTestContextBootstrapper","thread_name":"main","level":"INFO","level_value":20000}'.
+
+# Created at 2024-09-13T12:50:24.522
+Corrupted STDOUT by directly writing to native stream in forked JVM 1. Stream '{"@timestamp":"2024-09-13T12:50:24.521+05:30","@version":"1","message":"Using TestExecutionListeners: [org.springframework.test.context.web.ServletTestExecutionListener@31a1b37b, org.springframework.test.context.support.DirtiesContextBeforeModesTestExecutionListener@640c2749, org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener@57ab7b32, org.springframework.boot.test.autoconfigure.SpringBootDependencyInjectionTestExecutionListener@6285027a, org.springframework.test.context.support.DirtiesContextTestExecutionListener@5e834f3a, org.springframework.test.context.transaction.TransactionalTestExecutionListener@5bb00dcc, org.springframework.test.context.jdbc.SqlScriptsTestExecutionListener@57ce8f63, org.springframework.test.context.event.EventPublishingTestExecutionListener@1d92d132, org.springframework.boot.test.mock.mockito.ResetMocksTestExecutionListener@59acb725, org.springframework.boot.test.autoconfigure.restdocs.RestDocsTestExecutionListener@2291fb1, org.springframework.boot.test.autoconfigure.web.client.MockRestServiceServerResetTestExecutionListener@213f2d00, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrintOnlyOnFailureTestExecutionListener@2aaf7354, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverTestExecutionListener@1606ecbb, org.springframework.boot.test.autoconfigure.webservices.client.MockWebServiceServerTestExecutionListener@5c18ad5d]","logger_name":"org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTestContextBootstrapper","thread_name":"main","level":"INFO","level_value":20000}'.
+
+# Created at 2024-09-13T12:50:27.537
+ForkStarter IOException: 973 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback-test.xml]
+973 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback.groovy]
+974 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Found resource [logback.xml] at [jar:file:/Users/apple/.m2/repository/io/mosip/kernel/kernel-keymanager-service/1.2.0.1/kernel-keymanager-service-1.2.0.1-lib.jar!/logback.xml]
+974 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs multiple times on the classpath.
+974 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [jar:file:/Users/apple/.m2/repository/io/mosip/kernel/kernel-pdfgenerator-itext/1.2.0.1/kernel-pdfgenerator-itext-1.2.0.1.jar!/logback.xml]
+974 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [jar:file:/Users/apple/.m2/repository/io/mosip/kernel/kernel-keymanager-service/1.2.0.1/kernel-keymanager-service-1.2.0.1-lib.jar!/logback.xml]
+987 |-INFO in ch.qos.logback.core.joran.spi.ConfigurationWatchList@7c3223aa - URL [jar:file:/Users/apple/.m2/repository/io/mosip/kernel/kernel-keymanager-service/1.2.0.1/kernel-keymanager-service-1.2.0.1-lib.jar!/logback.xml] is not of type file
+019 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - debug attribute not set
+023 |-ERROR in ch.qos.logback.core.joran.spi.Interpreter@2:83 - no applicable action for [springProperty], current ElementPath  is [[configuration][springProperty]]
+023 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.ConsoleAppender]
+029 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [STDOUT]
+296 |-INFO in ch.qos.logback.classic.joran.action.RootLoggerAction - Setting level of ROOT logger to INFO
+296 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [STDOUT] to Logger[ROOT]
+297 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - End of configuration.
+297 |-INFO in ch.qos.logback.classic.joran.JoranConfigurator@7683d632 - Registering current configuration as safe fallback point.
+org.apache.maven.plugin.surefire.booterclient.output.MultipleFailureException: 973 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback-test.xml]
+973 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback.groovy]
+974 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Found resource [logback.xml] at [jar:file:/Users/apple/.m2/repository/io/mosip/kernel/kernel-keymanager-service/1.2.0.1/kernel-keymanager-service-1.2.0.1-lib.jar!/logback.xml]
+974 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs multiple times on the classpath.
+974 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [jar:file:/Users/apple/.m2/repository/io/mosip/kernel/kernel-pdfgenerator-itext/1.2.0.1/kernel-pdfgenerator-itext-1.2.0.1.jar!/logback.xml]
+974 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [jar:file:/Users/apple/.m2/repository/io/mosip/kernel/kernel-keymanager-service/1.2.0.1/kernel-keymanager-service-1.2.0.1-lib.jar!/logback.xml]
+987 |-INFO in ch.qos.logback.core.joran.spi.ConfigurationWatchList@7c3223aa - URL [jar:file:/Users/apple/.m2/repository/io/mosip/kernel/kernel-keymanager-service/1.2.0.1/kernel-keymanager-service-1.2.0.1-lib.jar!/logback.xml] is not of type file
+019 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - debug attribute not set
+023 |-ERROR in ch.qos.logback.core.joran.spi.Interpreter@2:83 - no applicable action for [springProperty], current ElementPath  is [[configuration][springProperty]]
+023 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.ConsoleAppender]
+029 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [STDOUT]
+296 |-INFO in ch.qos.logback.classic.joran.action.RootLoggerAction - Setting level of ROOT logger to INFO
+296 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [STDOUT] to Logger[ROOT]
+297 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - End of configuration.
+297 |-INFO in ch.qos.logback.classic.joran.JoranConfigurator@7683d632 - Registering current configuration as safe fallback point
+	at org.apache.maven.plugin.surefire.booterclient.output.ThreadedStreamConsumer$Pumper.<init>(ThreadedStreamConsumer.java:58)
+	at org.apache.maven.plugin.surefire.booterclient.output.ThreadedStreamConsumer.<init>(ThreadedStreamConsumer.java:110)
+	at org.apache.maven.plugin.surefire.booterclient.ForkStarter.fork(ForkStarter.java:596)
+	at org.apache.maven.plugin.surefire.booterclient.ForkStarter.fork(ForkStarter.java:533)
+	at org.apache.maven.plugin.surefire.booterclient.ForkStarter.run(ForkStarter.java:278)
+	at org.apache.maven.plugin.surefire.booterclient.ForkStarter.run(ForkStarter.java:244)
+	at org.apache.maven.plugin.surefire.AbstractSurefireMojo.executeProvider(AbstractSurefireMojo.java:1194)
+	at org.apache.maven.plugin.surefire.AbstractSurefireMojo.executeAfterPreconditionsChecked(AbstractSurefireMojo.java:1022)
+	at org.apache.maven.plugin.surefire.AbstractSurefireMojo.execute(AbstractSurefireMojo.java:868)
+	at org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo(DefaultBuildPluginManager.java:126)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute2(MojoExecutor.java:328)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute(MojoExecutor.java:316)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:212)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:174)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.access$000(MojoExecutor.java:75)
+	at org.apache.maven.lifecycle.internal.MojoExecutor$1.run(MojoExecutor.java:162)
+	at org.apache.maven.plugin.DefaultMojosExecutionStrategy.execute(DefaultMojosExecutionStrategy.java:39)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:159)
+	at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:105)
+	at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:73)
+	at org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build(SingleThreadedBuilder.java:53)
+	at org.apache.maven.lifecycle.internal.LifecycleStarter.execute(LifecycleStarter.java:118)
+	at org.apache.maven.DefaultMaven.doExecute(DefaultMaven.java:261)
+	at org.apache.maven.DefaultMaven.doExecute(DefaultMaven.java:173)
+	at org.apache.maven.DefaultMaven.execute(DefaultMaven.java:101)
+	at org.apache.maven.cli.MavenCli.execute(MavenCli.java:904)
+	at org.apache.maven.cli.MavenCli.doMain(MavenCli.java:281)
+	at org.apache.maven.cli.MavenCli.main(MavenCli.java:204)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced(Launcher.java:255)
+	at org.codehaus.plexus.classworlds.launcher.Launcher.launch(Launcher.java:201)
+	at org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode(Launcher.java:361)
+	at org.codehaus.plexus.classworlds.launcher.Launcher.main(Launcher.java:314)
+
+

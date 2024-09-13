@@ -1,0 +1,492 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthenticationServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">mock-identity-system</a> &gt; <a href="index.source.html" class="el_package">io.mosip.esignet.mock.identitysystem.service.impl</a> &gt; <span class="el_source">AuthenticationServiceImpl.java</span></div><h1>AuthenticationServiceImpl.java</h1><pre class="source lang-java linenums">package io.mosip.esignet.mock.identitysystem.service.impl;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.jwk.RSAKey;
+import io.mosip.esignet.mock.identitysystem.dto.*;
+import io.mosip.esignet.mock.identitysystem.entity.KycAuth;
+import io.mosip.esignet.mock.identitysystem.exception.MockIdentityException;
+import io.mosip.esignet.mock.identitysystem.repository.AuthRepository;
+import io.mosip.esignet.mock.identitysystem.service.AuthenticationService;
+import io.mosip.esignet.mock.identitysystem.service.IdentityService;
+import io.mosip.esignet.mock.identitysystem.util.HelperUtil;
+import io.mosip.kernel.core.util.StringUtils;
+import io.mosip.kernel.signature.dto.JWTSignatureRequestDto;
+import io.mosip.kernel.signature.dto.JWTSignatureResponseDto;
+import io.mosip.kernel.signature.service.SignatureService;
+import lombok.extern.slf4j.Slf4j;
+import org.jose4j.jwe.ContentEncryptionAlgorithmIdentifiers;
+import org.jose4j.jwe.JsonWebEncryption;
+import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.client.RestTemplate;
+
+import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static io.mosip.esignet.mock.identitysystem.util.Constants.APPLICATION_ID;
+import static io.mosip.esignet.mock.identitysystem.util.HelperUtil.ALGO_SHA3_256;
+
+
+@Service
+<span class="fc" id="L45">@Slf4j</span>
+<span class="fc" id="L46">public class AuthenticationServiceImpl implements AuthenticationService {</span>
+
+    private static final String PSUT_FORMAT = &quot;%s%s&quot;;
+    private static final String OTP_VALUE = &quot;111111&quot;;
+
+<span class="fc" id="L51">    private final String FIELD_ID_KEY=&quot;id&quot;;</span>
+
+    @Autowired
+    private AuthRepository authRepository;
+
+    @Autowired
+    private IdentityService identityService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private SignatureService signatureService;
+
+    @Value(&quot;${mosip.mock.ida.kyc.transaction-timeout-secs:60}&quot;)
+    private int transactionTimeoutInSecs;
+
+    @Value(&quot;${mosip.mock.ida.kyc.encrypt:false}&quot;)
+    private boolean encryptKyc;
+
+    @Value(&quot;${mosip.mock.ida.kyc.default-language:eng}&quot;)
+    private String defaultLanguage;
+
+    @Value(&quot;${mosip.esignet.mock.authenticator.ida.otp-channels}&quot;)
+    private List&lt;String&gt; otpChannels;
+
+    @Value(&quot;#{${mosip.esignet.authenticator.auth-factor.kba.field-details}}&quot;)
+    private List&lt;Map&lt;String,String&gt;&gt; fieldDetailList;
+
+    @Value(&quot;${mosip.esignet.authenticator.auth-factor.kba.field-language}&quot;)
+    private String fieldLang;
+
+    @Value(&quot;${mosip.esignet.authenticator.credissuer.verify-otp-url}&quot;)
+    private String verifyOTPUrl;
+
+    @Value(&quot;${mosip.esignet.authenticator.credissuer.send-otp-url}&quot;)
+    private String sendOTPUrl;
+
+<span class="fc" id="L89">    ArrayList&lt;String&gt; trnHash = new ArrayList&lt;&gt;();</span>
+
+    @Override
+    public KycAuthResponseDto kycAuth(String relyingPartyId, String clientId, KycAuthRequestDto kycAuthRequestDto) throws MockIdentityException {
+        //TODO validate relying party Id and client Id
+<span class="fc" id="L94">        log.info(&quot;kycAuth&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&quot;);</span>
+<span class="fc" id="L95">        IdentityData identityData = identityService.getIdentity(kycAuthRequestDto.getIndividualId());</span>
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">        if (identityData == null) {</span>
+<span class="nc" id="L97">            throw new MockIdentityException(&quot;invalid_individual_id&quot;);</span>
+        }
+<span class="fc" id="L99">        boolean authStatus = false;</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">        if (kycAuthRequestDto.getOtp() != null) {</span>
+            //check if the trn is available and active
+<span class="nc bnc" id="L102" title="All 2 branches missed.">            if (StringUtils.isEmpty(kycAuthRequestDto.getTransactionId())) {</span>
+<span class="nc" id="L103">                log.error(&quot;Invalid transaction Id&quot;);</span>
+<span class="nc" id="L104">                throw new MockIdentityException(&quot;invalid_transaction_id&quot;);</span>
+            }
+            //TODO: This OTP needs to be fetched from credissuer.
+<span class="nc" id="L107">            String otp = kycAuthRequestDto.getOtp();</span>
+<span class="nc" id="L108">            boolean isCredissuerVerfied = verifyOTPInCredissuer(otp, kycAuthRequestDto.getIndividualId());</span>
+<span class="nc" id="L109">            var trn_hash = HelperUtil.generateB64EncodedHash(ALGO_SHA3_256,</span>
+<span class="nc" id="L110">                    String.format(kycAuthRequestDto.getTransactionId(), kycAuthRequestDto.getIndividualId(), otp));</span>
+
+<span class="nc" id="L112">            var isValid = trnHash.contains(trn_hash);</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            if (isValid) {</span>
+                //TODO: Make a call to get the OTP for a Credential ID
+<span class="nc" id="L115">                authStatus = kycAuthRequestDto.getOtp().equals(otp);</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">                if (authStatus)</span>
+<span class="nc" id="L117">                    trnHash.remove(trn_hash);</span>
+                else
+<span class="nc" id="L119">                    throw new MockIdentityException(&quot;auth_failed&quot;);</span>
+            } else {
+<span class="nc" id="L121">                throw new MockIdentityException(&quot;invalid_transaction&quot;);</span>
+            }
+        }
+
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">        if (kycAuthRequestDto.getPin() != null) {</span>
+<span class="nc" id="L126">            authStatus = kycAuthRequestDto.getPin().equals(identityData.getPin());</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">            if (!authStatus)</span>
+<span class="nc" id="L128">                throw new MockIdentityException(&quot;auth_failed&quot;);</span>
+        }
+
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">        if (kycAuthRequestDto.getBiometrics() != null) {</span>
+<span class="nc" id="L132">            authStatus = true; //TODO</span>
+        }
+
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        if(kycAuthRequestDto.getKba()!=null){</span>
+<span class="fc" id="L136">            authStatus=validateKnowledgeBasedAuth(kycAuthRequestDto,identityData);</span>
+        }
+
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">        if (!CollectionUtils.isEmpty(kycAuthRequestDto.getTokens())) {</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">            authStatus = !StringUtils.isEmpty(kycAuthRequestDto.getTokens().get(0));</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">            if (!authStatus)</span>
+<span class="nc" id="L142">                throw new MockIdentityException(&quot;auth_failed&quot;);</span>
+        }
+<span class="fc" id="L144">        KycAuth kycAuth = saveKycAuthTransaction(kycAuthRequestDto.getTransactionId(), relyingPartyId,</span>
+<span class="fc" id="L145">                kycAuthRequestDto.getIndividualId());</span>
+
+<span class="fc" id="L147">        KycAuthResponseDto kycAuthResponseDto = new KycAuthResponseDto();</span>
+<span class="fc" id="L148">        kycAuthResponseDto.setAuthStatus(authStatus);</span>
+<span class="fc" id="L149">        kycAuthResponseDto.setKycToken(kycAuth.getKycToken());</span>
+<span class="fc" id="L150">        kycAuthResponseDto.setPartnerSpecificUserToken(kycAuth.getPartnerSpecificUserToken());</span>
+<span class="fc" id="L151">        return kycAuthResponseDto;</span>
+    }
+
+    @Override
+    public KycExchangeResponseDto kycExchange(String relyingPartyId, String clientId, KycExchangeRequestDto kycExchangeRequestDto) throws MockIdentityException {
+        //TODO validate relying party Id and client Id
+<span class="nc" id="L157">        log.info(&quot;kycExchange&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&quot;);</span>
+<span class="nc" id="L158">        log.info(&quot;kycExchangeRequestDto&gt;&gt;&gt;&gt;&gt;&gt;&quot;, kycExchangeRequestDto);</span>
+<span class="nc" id="L159">        Optional&lt;KycAuth&gt; result = authRepository.findByKycTokenAndValidityAndTransactionIdAndIndividualId</span>
+<span class="nc" id="L160">                (kycExchangeRequestDto.getKycToken(), Valid.ACTIVE, kycExchangeRequestDto.getTransactionId(),</span>
+<span class="nc" id="L161">                        kycExchangeRequestDto.getIndividualId());</span>
+
+<span class="nc" id="L163">        log.info(&quot;result&gt;&gt;&gt;&gt;&gt;&gt;&quot;, result);</span>
+
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        if (!result.isPresent())</span>
+<span class="nc" id="L166">            throw new MockIdentityException(&quot;mock-ida-006&quot;);</span>
+
+<span class="nc" id="L168">        LocalDateTime savedTime = result.get().getResponseTime();</span>
+<span class="nc" id="L169">        long seconds = savedTime.until(kycExchangeRequestDto.getRequestDateTime(), ChronoUnit.SECONDS);</span>
+<span class="nc bnc" id="L170" title="All 4 branches missed.">        if (seconds &lt; 0 || seconds &gt; transactionTimeoutInSecs) {</span>
+<span class="nc" id="L171">            result.get().setValidity(Valid.EXPIRED);</span>
+<span class="nc" id="L172">            authRepository.save(result.get());</span>
+<span class="nc" id="L173">            throw new MockIdentityException(&quot;mock-ida-007&quot;);</span>
+        }
+
+        try {
+<span class="nc" id="L177">            Map&lt;String, Object&gt; kyc = buildKycDataBasedOnPolicy(kycExchangeRequestDto.getIndividualId(),</span>
+<span class="nc" id="L178">                    kycExchangeRequestDto.getAcceptedClaims(), kycExchangeRequestDto.getClaimLocales());</span>
+<span class="nc" id="L179">            kyc.put(&quot;sub&quot;, result.get().getPartnerSpecificUserToken());</span>
+
+<span class="nc" id="L181">            result.get().setValidity(Valid.PROCESSED);</span>
+<span class="nc" id="L182">            authRepository.save(result.get());</span>
+
+<span class="nc bnc" id="L184" title="All 2 branches missed.">            String finalKyc = this.encryptKyc ? getJWE(relyingPartyId, signKyc(kyc)) : signKyc(kyc);</span>
+<span class="nc" id="L185">            KycExchangeResponseDto kycExchangeResponseDto = new KycExchangeResponseDto();</span>
+<span class="nc" id="L186">            kycExchangeResponseDto.setKyc(finalKyc);</span>
+<span class="nc" id="L187">            return kycExchangeResponseDto;</span>
+<span class="nc" id="L188">        } catch (Exception ex) {</span>
+<span class="nc" id="L189">            log.error(&quot;Failed to build kyc data&quot;, ex);</span>
+<span class="nc" id="L190">            throw new MockIdentityException(&quot;mock-ida-008&quot;);</span>
+        }
+    }
+
+    @Override
+    public SendOtpResult sendOtp(String relyingPartyId, String clientId, SendOtpDto sendOtpDto) throws MockIdentityException {
+        //TODO validate relying party Id and client Id
+<span class="nc" id="L197">        log.info(&quot;sending the otp&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&quot;);</span>
+<span class="nc" id="L198">        IdentityData identityData = identityService.getIdentity(sendOtpDto.getIndividualId());</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">        if (identityData == null) {</span>
+<span class="nc" id="L200">            log.error(&quot;Provided individual Id not found {}&quot;, sendOtpDto.getIndividualId());</span>
+<span class="nc" id="L201">            throw new MockIdentityException(&quot;invalid_individual_id&quot;);</span>
+        }
+
+<span class="nc bnc" id="L204" title="All 2 branches missed.">        if (!sendOtpDto.getOtpChannels().stream().allMatch(this::isSupportedOtpChannel)) {</span>
+<span class="nc" id="L205">            log.error(&quot;Invalid Otp Channels&quot;);</span>
+<span class="nc" id="L206">            throw new MockIdentityException(&quot;invalid_otp_channel&quot;);</span>
+        }
+
+<span class="nc" id="L209">        String maskedEmailId = null;</span>
+<span class="nc" id="L210">        String maskedMobile = null;</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">        for (String channel : sendOtpDto.getOtpChannels()) {</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">            if (channel.equalsIgnoreCase(&quot;email&quot;)) {</span>
+<span class="nc" id="L213">                maskedEmailId = HelperUtil.maskEmail(identityData.getEmail());</span>
+            }
+<span class="nc bnc" id="L215" title="All 4 branches missed.">            if (channel.equalsIgnoreCase(&quot;phone&quot;) || channel.equalsIgnoreCase(&quot;mobile&quot;)) {</span>
+<span class="nc" id="L216">                maskedMobile = HelperUtil.maskMobile(identityData.getPhone());</span>
+            }
+<span class="nc" id="L218">        }</span>
+
+<span class="nc bnc" id="L220" title="All 2 branches missed.">        if(org.springframework.util.StringUtils.isEmpty(maskedEmailId) &amp;&amp;</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">                org.springframework.util.StringUtils.isEmpty(maskedMobile)) {</span>
+<span class="nc" id="L222">            log.error(&quot;neither email id nor mobile number found for the given individualId&quot;);</span>
+<span class="nc" id="L223">            throw new MockIdentityException(&quot;no_email_mobile_found&quot;);</span>
+        }
+        //TODO: OTP vaule needs to come from API
+        //TODO: Make a call to get the OTP for a Credential ID
+<span class="nc" id="L227">        var trn_token_hash = HelperUtil.generateB64EncodedHash(ALGO_SHA3_256,</span>
+<span class="nc" id="L228">                String.format(sendOtpDto.getTransactionId(), sendOtpDto.getIndividualId(), </span>
+<span class="nc" id="L229">                fetchOTPFromCredissuer(sendOtpDto.getIndividualId())));</span>
+
+<span class="nc" id="L231">        trnHash.add(trn_token_hash);</span>
+<span class="nc" id="L232">        return new SendOtpResult(sendOtpDto.getTransactionId(), maskedEmailId, maskedMobile);</span>
+    }
+
+    private String fetchOTPFromCredissuer(String individualID) {
+        String otpValue;
+        try {
+<span class="nc" id="L238">            RestTemplate restTemplate = new RestTemplate();</span>
+<span class="nc" id="L239">            String otpApiUrl = sendOTPUrl + individualID;</span>
+<span class="nc" id="L240">            ResponseEntity&lt;String&gt; response = restTemplate.getForEntity(otpApiUrl, String.class);</span>
+<span class="nc" id="L241">            ObjectMapper objectMapper = new ObjectMapper();</span>
+<span class="nc" id="L242">            JsonNode rootNode = objectMapper.readTree(response.getBody());</span>
+<span class="nc" id="L243">            otpValue = rootNode.path(&quot;otp&quot;).asText(); // Assuming the OTP is returned as plain text</span>
+<span class="nc" id="L244">            log.info(&quot;OTP value fetched from API: {}&quot;, otpValue);</span>
+<span class="nc" id="L245">            return otpValue;</span>
+<span class="nc" id="L246">        } catch (Exception e) {</span>
+<span class="nc" id="L247">            log.error(&quot;Error fetching OTP from external API&quot;, e);</span>
+<span class="nc" id="L248">            throw new MockIdentityException(&quot;otp_fetch_error&quot;);</span>
+        }
+    }
+
+    private boolean verifyOTPInCredissuer(String otp, String credentialID) {
+        try {
+<span class="nc" id="L254">            RestTemplate restTemplate = new RestTemplate();</span>
+    
+            // Create the request body
+<span class="nc" id="L257">            Map&lt;String, String&gt; requestBody = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L258">            requestBody.put(&quot;credential_id&quot;, credentialID);</span>
+<span class="nc" id="L259">            requestBody.put(&quot;otp&quot;, otp);</span>
+    
+            // Convert to JSON
+<span class="nc" id="L262">            HttpEntity&lt;Map&lt;String, String&gt;&gt; requestEntity = new HttpEntity&lt;&gt;(requestBody);</span>
+    
+            // Make the POST request
+<span class="nc" id="L265">            ResponseEntity&lt;String&gt; response = restTemplate.postForEntity(verifyOTPUrl, requestEntity, String.class);</span>
+    
+            // Check response status and extract the status field from the JSON response
+<span class="nc bnc" id="L268" title="All 2 branches missed.">            if (response.getStatusCode() == HttpStatus.OK) {</span>
+<span class="nc" id="L269">                ObjectMapper objectMapper = new ObjectMapper();</span>
+<span class="nc" id="L270">                JsonNode rootNode = objectMapper.readTree(response.getBody());</span>
+<span class="nc" id="L271">                String status = rootNode.path(&quot;status&quot;).asText();</span>
+    
+                // Log and return true if status is &quot;success&quot;
+<span class="nc bnc" id="L274" title="All 2 branches missed.">                if (&quot;success&quot;.equals(status)) {</span>
+<span class="nc" id="L275">                    log.info(&quot;OTP verified successfully for credential ID: {}&quot;, credentialID);</span>
+<span class="nc" id="L276">                    return true;</span>
+                } else {
+<span class="nc" id="L278">                    log.error(&quot;OTP verification failed for credential ID: {}&quot;, credentialID);</span>
+<span class="nc" id="L279">                    return false;</span>
+                }
+            } else {
+<span class="nc" id="L282">                log.error(&quot;Failed to verify OTP. HTTP Status: {}&quot;, response.getStatusCode());</span>
+<span class="nc" id="L283">                return false;</span>
+            }
+<span class="nc" id="L285">        } catch (Exception e) {</span>
+<span class="nc" id="L286">            log.error(&quot;Error verifying OTP with external API&quot;, e);</span>
+<span class="nc" id="L287">            throw new MockIdentityException(&quot;otp_verification_error&quot;);</span>
+        }
+    }
+    
+
+    private boolean validateKnowledgeBasedAuth(KycAuthRequestDto kycAuthRequestDto,IdentityData identityData){
+<span class="pc bpc" id="L293" title="2 of 4 branches missed.">        if(CollectionUtils.isEmpty(fieldDetailList) || StringUtils.isEmpty(fieldLang)){</span>
+<span class="nc" id="L294">            log.error(&quot;KBA field details not configured&quot;);</span>
+<span class="nc" id="L295">            throw new MockIdentityException(&quot;auth-failed&quot;);</span>
+        }
+<span class="fc" id="L297">        String encodedChallenge=kycAuthRequestDto.getKba();</span>
+        try{
+<span class="fc" id="L299">            byte[] decodedBytes = Base64.getUrlDecoder().decode(encodedChallenge);</span>
+<span class="fc" id="L300">            String challenge = new String(decodedBytes, StandardCharsets.UTF_8);</span>
+<span class="fc" id="L301">            Map&lt;String, String&gt; challengeMap = objectMapper.readValue(challenge, Map.class);</span>
+
+<span class="fc bfc" id="L303" title="All 2 branches covered.">            for(Map&lt;String,String&gt; fieldDetail:fieldDetailList){</span>
+<span class="fc bfc" id="L304" title="All 2 branches covered.">                if(challengeMap.containsKey(fieldDetail.get(FIELD_ID_KEY))) {</span>
+<span class="fc" id="L305">                    String challengeField = fieldDetail.get(FIELD_ID_KEY);</span>
+<span class="fc" id="L306">                    String challengeValue = challengeMap.get(challengeField);</span>
+<span class="fc bfc" id="L307" title="All 2 branches covered.">                    if(challengeField.equals(&quot;dateOfBirth&quot;)) {</span>
+<span class="fc" id="L308">                        challengeValue = new SimpleDateFormat(&quot;yyyy/MM/dd&quot;).format(</span>
+<span class="fc" id="L309">                                new SimpleDateFormat(fieldDetail.get(&quot;format&quot;)).parse(challengeValue));</span>
+                    }
+<span class="fc" id="L311">                    String identityDataValue = getIdentityDataFieldValue(identityData, challengeField);</span>
+<span class="fc bfc" id="L312" title="All 2 branches covered.">                    if(!identityDataValue.equals(challengeValue)) {</span>
+<span class="fc" id="L313">                        return false;</span>
+                    }
+                }
+<span class="fc" id="L316">            }</span>
+<span class="fc" id="L317">        }catch (Exception e){</span>
+<span class="fc" id="L318">            log.error(&quot;Failed to decode KBA challenge or compare it with IdentityData&quot;, e);</span>
+<span class="fc" id="L319">            throw new MockIdentityException(&quot;auth-failed&quot;);</span>
+<span class="fc" id="L320">        }</span>
+<span class="fc" id="L321">        return true;</span>
+    }
+    private String getIdentityDataFieldValue(IdentityData identityData,String challengeField) throws Exception {
+<span class="fc" id="L324">        Field field = identityData.getClass().getDeclaredField(challengeField);</span>
+<span class="fc" id="L325">        field.setAccessible(true);</span>
+<span class="fc" id="L326">        Object fieldValue = field.get(identityData);</span>
+<span class="fc bfc" id="L327" title="All 2 branches covered.">        if(fieldValue instanceof List){</span>
+<span class="fc" id="L328">            List&lt;LanguageValue&gt; languageValues = (List&lt;LanguageValue&gt;) fieldValue;</span>
+<span class="pc bpc" id="L329" title="1 of 2 branches missed.">            for(LanguageValue languageValue:languageValues){</span>
+<span class="pc bpc" id="L330" title="1 of 2 branches missed.">                if(languageValue.getLanguage().equals(fieldLang)){</span>
+<span class="fc" id="L331">                    return languageValue.getValue();</span>
+                }
+<span class="nc" id="L333">            }</span>
+        }
+<span class="fc" id="L335">        return (String) fieldValue;</span>
+    }
+
+    private String signKyc(Map&lt;String, Object&gt; kyc) throws JsonProcessingException {
+<span class="nc" id="L339">        String payload = objectMapper.writeValueAsString(kyc);</span>
+<span class="nc" id="L340">        JWTSignatureRequestDto jwtSignatureRequestDto = new JWTSignatureRequestDto();</span>
+<span class="nc" id="L341">        jwtSignatureRequestDto.setApplicationId(APPLICATION_ID);</span>
+<span class="nc" id="L342">        jwtSignatureRequestDto.setReferenceId(&quot;&quot;);</span>
+<span class="nc" id="L343">        jwtSignatureRequestDto.setIncludePayload(true);</span>
+<span class="nc" id="L344">        jwtSignatureRequestDto.setIncludeCertificate(false);</span>
+<span class="nc" id="L345">        jwtSignatureRequestDto.setDataToSign(HelperUtil.b64Encode(payload));</span>
+<span class="nc" id="L346">        jwtSignatureRequestDto.setIncludeCertHash(false);</span>
+<span class="nc" id="L347">        JWTSignatureResponseDto responseDto = signatureService.jwtSign(jwtSignatureRequestDto);</span>
+<span class="nc" id="L348">        return responseDto.getJwtSignedData();</span>
+    }
+
+    private String getJWE(String relyingPartyId, String signedJwt) throws Exception {
+<span class="nc" id="L352">        JsonWebEncryption jsonWebEncryption = new JsonWebEncryption();</span>
+<span class="nc" id="L353">        jsonWebEncryption.setAlgorithmHeaderValue(KeyManagementAlgorithmIdentifiers.RSA_OAEP_256);</span>
+<span class="nc" id="L354">        jsonWebEncryption.setEncryptionMethodHeaderParameter(ContentEncryptionAlgorithmIdentifiers.AES_256_GCM);</span>
+<span class="nc" id="L355">        jsonWebEncryption.setPayload(signedJwt);</span>
+<span class="nc" id="L356">        jsonWebEncryption.setContentTypeHeaderValue(&quot;JWT&quot;);</span>
+<span class="nc" id="L357">        RSAKey rsaKey = getRelyingPartyPublicKey(relyingPartyId);</span>
+<span class="nc" id="L358">        jsonWebEncryption.setKey(rsaKey.toPublicKey());</span>
+<span class="nc" id="L359">        jsonWebEncryption.setKeyIdHeaderValue(rsaKey.getKeyID());</span>
+<span class="nc" id="L360">        return jsonWebEncryption.getCompactSerialization();</span>
+    }
+
+    private RSAKey getRelyingPartyPublicKey(String relyingPartyId) {
+        //TODO where to store relying-party public key
+<span class="nc" id="L365">        throw new MockIdentityException(&quot;jwe-not-implemented&quot;);</span>
+    }
+
+    private KycAuth saveKycAuthTransaction(String transactionId, String relyingPartyId, String individualId) {
+<span class="fc" id="L369">        String kycToken = HelperUtil.generateB64EncodedHash(ALGO_SHA3_256, UUID.randomUUID().toString());</span>
+        String psut;
+        try {
+<span class="fc" id="L372">            psut = HelperUtil.generateB64EncodedHash(ALGO_SHA3_256,</span>
+<span class="fc" id="L373">                    String.format(PSUT_FORMAT, individualId, relyingPartyId));</span>
+<span class="nc" id="L374">        } catch (Exception e) {</span>
+<span class="nc" id="L375">            log.error(&quot;Failed to generate PSUT&quot;, e);</span>
+<span class="nc" id="L376">            throw new MockIdentityException(&quot;mock-ida-004&quot;);</span>
+<span class="fc" id="L377">        }</span>
+
+<span class="fc" id="L379">        KycAuth kycAuth = new KycAuth(kycToken, psut, LocalDateTime.now(ZoneOffset.UTC), Valid.ACTIVE, transactionId,</span>
+                individualId);
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">        if (kycAuth == null)</span>
+<span class="nc" id="L382">            throw new MockIdentityException(&quot;mock-ida-005&quot;);</span>
+<span class="fc" id="L383">        return authRepository.save(kycAuth);</span>
+    }
+
+    private Map&lt;String, Object&gt; buildKycDataBasedOnPolicy(String individualId, List&lt;String&gt; claims, List&lt;String&gt; locales) {
+<span class="nc" id="L387">        Map&lt;String, Object&gt; kyc = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L388">        IdentityData identityData = identityService.getIdentity(individualId);</span>
+<span class="nc bnc" id="L389" title="All 2 branches missed.">        if (identityData == null) {</span>
+<span class="nc" id="L390">            throw new MockIdentityException(&quot;mock-ida-001&quot;);</span>
+        }
+
+<span class="nc bnc" id="L393" title="All 2 branches missed.">        if (CollectionUtils.isEmpty(locales)) {</span>
+<span class="nc" id="L394">            locales = Arrays.asList(defaultLanguage);</span>
+        }
+<span class="nc bnc" id="L396" title="All 2 branches missed.">        boolean singleLanguage = locales.size() == 1;</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">        for (String claim : claims) {</span>
+<span class="nc bnc" id="L398" title="All 16 branches missed.">            switch (claim) {</span>
+                case &quot;name&quot;:
+<span class="nc bnc" id="L400" title="All 2 branches missed.">                	if (identityData.getName() != null) {</span>
+<span class="nc" id="L401">                		kyc.putAll(getKycValues(locales, &quot;name&quot;, identityData.getName(), singleLanguage));</span>
+<span class="nc" id="L402">                        break;</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">                	} else if (identityData.getFullName() != null) {</span>
+<span class="nc" id="L404">                		kyc.putAll(getKycValues(locales, &quot;name&quot;, identityData.getFullName(), singleLanguage));</span>
+<span class="nc" id="L405">                        break;</span>
+                	}
+                case &quot;middle_name&quot;:
+<span class="nc" id="L408">                    kyc.putAll(getKycValues(locales, &quot;middle_name&quot;, identityData.getMiddleName(), singleLanguage));</span>
+<span class="nc" id="L409">                    break;</span>
+                case &quot;given_name&quot;:
+<span class="nc" id="L411">                    kyc.putAll(getKycValues(locales, &quot;given_name&quot;, identityData.getGivenName(), singleLanguage));</span>
+<span class="nc" id="L412">                    break;</span>
+                case &quot;family_name&quot;:
+<span class="nc" id="L414">                    kyc.putAll(getKycValues(locales, &quot;family_name&quot;, identityData.getFamilyName(), singleLanguage));</span>
+<span class="nc" id="L415">                    break;</span>
+                case &quot;nickname&quot;:
+<span class="nc" id="L417">                    kyc.putAll(getKycValues(locales, &quot;nickname&quot;, identityData.getNickName(), singleLanguage));</span>
+<span class="nc" id="L418">                    break;</span>
+                case &quot;preferred_username&quot;:
+<span class="nc" id="L420">                    kyc.putAll(getKycValues(locales, &quot;name&quot;, identityData.getPreferredUsername(), singleLanguage));</span>
+<span class="nc" id="L421">                    break;</span>
+                case &quot;birthdate&quot;:
+<span class="nc bnc" id="L423" title="All 2 branches missed.">                    if (identityData.getDateOfBirth() != null) {</span>
+<span class="nc" id="L424">                        kyc.put(&quot;birthdate&quot;, identityData.getDateOfBirth());</span>
+                    }
+                    break;
+                case &quot;gender&quot;:
+<span class="nc" id="L428">                    kyc.putAll(getKycValues(locales, &quot;gender&quot;, identityData.getGender(), singleLanguage));</span>
+<span class="nc" id="L429">                    break;</span>
+                case &quot;email&quot;:
+<span class="nc bnc" id="L431" title="All 2 branches missed.">                    if (identityData.getEmail() != null) {</span>
+<span class="nc" id="L432">                        kyc.put(&quot;email&quot;, identityData.getEmail());</span>
+                    }
+                    break;
+                case &quot;phone_number&quot;:
+<span class="nc bnc" id="L436" title="All 2 branches missed.">                    if (identityData.getPhone() != null) {</span>
+<span class="nc" id="L437">                        kyc.put(&quot;phone_number&quot;, identityData.getPhone());</span>
+                    }
+                    break;
+                case &quot;address&quot;:
+<span class="nc" id="L441">                    Map&lt;String, Object&gt; addressValues = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L442">                    addressValues.putAll(getKycValues(locales, &quot;street_address&quot;, identityData.getStreetAddress(), singleLanguage));</span>
+<span class="nc" id="L443">                    addressValues.putAll(getKycValues(locales, &quot;locality&quot;, identityData.getLocality(), singleLanguage));</span>
+<span class="nc" id="L444">                    addressValues.putAll(getKycValues(locales, &quot;region&quot;, identityData.getRegion(), singleLanguage));</span>
+<span class="nc bnc" id="L445" title="All 2 branches missed.">                    if (identityData.getPostalCode() != null) {</span>
+<span class="nc" id="L446">                        addressValues.put(&quot;postal_code&quot;, identityData.getPostalCode());</span>
+                    }
+<span class="nc" id="L448">                    addressValues.putAll(getKycValues(locales, &quot;country&quot;, identityData.getCountry(), singleLanguage));</span>
+<span class="nc" id="L449">                    kyc.put(&quot;address&quot;, addressValues);</span>
+<span class="nc" id="L450">                    break;</span>
+                case &quot;zoneinfo&quot;:
+<span class="nc bnc" id="L452" title="All 2 branches missed.">                    if (identityData.getZoneInfo() != null) {</span>
+<span class="nc" id="L453">                        kyc.put(&quot;zoneinfo&quot;, identityData.getZoneInfo());</span>
+                    }
+                    break;
+                case &quot;locale&quot;:
+<span class="nc bnc" id="L457" title="All 2 branches missed.">                    if (identityData.getLocale() != null) {</span>
+<span class="nc" id="L458">                        kyc.put(&quot;picture&quot;, identityData.getLocale());</span>
+                    }
+                    break;
+                case &quot;picture&quot;:
+<span class="nc bnc" id="L462" title="All 2 branches missed.">                    if (identityData.getEncodedPhoto() != null) {</span>
+<span class="nc" id="L463">                        kyc.put(&quot;picture&quot;, identityData.getEncodedPhoto());</span>
+                    }
+                    break;
+                case &quot;individual_id&quot;:
+<span class="nc bnc" id="L467" title="All 2 branches missed.">                    if (identityData.getIndividualId() != null) {</span>
+<span class="nc" id="L468">                        kyc.put(&quot;individual_id&quot;, identityData.getIndividualId());</span>
+                    }
+                    break;
+            }
+<span class="nc" id="L472">        }</span>
+<span class="nc" id="L473">        return kyc;</span>
+    }
+
+    private Map&lt;String, Object&gt; getKycValues(List&lt;String&gt; locales, String claimName, List&lt;LanguageValue&gt; values, boolean isSingleLanguage) {
+<span class="nc bnc" id="L477" title="All 2 branches missed.">        if (values == null) {</span>
+<span class="nc" id="L478">            return Collections.emptyMap();</span>
+        }
+<span class="nc bnc" id="L480" title="All 2 branches missed.">        for (String locale : locales) {</span>
+<span class="nc" id="L481">            return values.stream()</span>
+<span class="nc bnc" id="L482" title="All 4 branches missed.">                    .filter(v -&gt; v.getLanguage().equalsIgnoreCase(locale) || v.getLanguage().startsWith(locale))</span>
+<span class="nc bnc" id="L483" title="All 2 branches missed.">                    .collect(Collectors.toMap(v -&gt; isSingleLanguage ? claimName : claimName + &quot;#&quot; + locale, v -&gt; v.getValue()));</span>
+        }
+<span class="nc" id="L485">        return Collections.emptyMap();</span>
+    }
+
+    public boolean isSupportedOtpChannel(String channel) {
+<span class="nc bnc" id="L489" title="All 4 branches missed.">        return channel != null &amp;&amp; otpChannels.contains(channel.toLowerCase());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>
