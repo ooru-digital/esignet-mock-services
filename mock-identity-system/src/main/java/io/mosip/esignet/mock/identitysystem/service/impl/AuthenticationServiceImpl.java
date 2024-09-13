@@ -1,6 +1,7 @@
 package io.mosip.esignet.mock.identitysystem.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.RSAKey;
 import io.mosip.esignet.mock.identitysystem.dto.*;
@@ -20,8 +21,12 @@ import org.jose4j.jwe.JsonWebEncryption;
 import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.client.RestTemplate;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -75,12 +80,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Value("${mosip.esignet.authenticator.auth-factor.kba.field-language}")
     private String fieldLang;
 
+    @Value("${mosip.esignet.authenticator.credissuer.verify-otp-url}")
+    private String verifyOTPUrl;
+
+    @Value("${mosip.esignet.authenticator.credissuer.send-otp-url}")
+    private String sendOTPUrl;
+
     ArrayList<String> trnHash = new ArrayList<>();
 
     @Override
     public KycAuthResponseDto kycAuth(String relyingPartyId, String clientId, KycAuthRequestDto kycAuthRequestDto) throws MockIdentityException {
         //TODO validate relying party Id and client Id
-
+        log.info("kycAuth>>>>>>>>>>>>");
         IdentityData identityData = identityService.getIdentity(kycAuthRequestDto.getIndividualId());
         if (identityData == null) {
             throw new MockIdentityException("invalid_individual_id");
@@ -92,13 +103,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 log.error("Invalid transaction Id");
                 throw new MockIdentityException("invalid_transaction_id");
             }
-
+            //TODO: This OTP needs to be fetched from credissuer.
+            String otp = kycAuthRequestDto.getOtp();
+            boolean isCredissuerVerfied = verifyOTPInCredissuer(otp, kycAuthRequestDto.getIndividualId());
             var trn_hash = HelperUtil.generateB64EncodedHash(ALGO_SHA3_256,
-                    String.format(kycAuthRequestDto.getTransactionId(), kycAuthRequestDto.getIndividualId(), OTP_VALUE));
+                    String.format(kycAuthRequestDto.getTransactionId(), kycAuthRequestDto.getIndividualId(), otp));
 
             var isValid = trnHash.contains(trn_hash);
             if (isValid) {
-                authStatus = kycAuthRequestDto.getOtp().equals(OTP_VALUE);
+                //TODO: Make a call to get the OTP for a Credential ID
+                authStatus = kycAuthRequestDto.getOtp().equals(otp);
                 if (authStatus)
                     trnHash.remove(trn_hash);
                 else
@@ -140,9 +154,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public KycExchangeResponseDto kycExchange(String relyingPartyId, String clientId, KycExchangeRequestDto kycExchangeRequestDto) throws MockIdentityException {
         //TODO validate relying party Id and client Id
+        log.info("kycExchange>>>>>>>>>>>>");
+        log.info("kycExchangeRequestDto>>>>>>", kycExchangeRequestDto);
         Optional<KycAuth> result = authRepository.findByKycTokenAndValidityAndTransactionIdAndIndividualId
                 (kycExchangeRequestDto.getKycToken(), Valid.ACTIVE, kycExchangeRequestDto.getTransactionId(),
                         kycExchangeRequestDto.getIndividualId());
+
+        log.info("result>>>>>>", result);
 
         if (!result.isPresent())
             throw new MockIdentityException("mock-ida-006");
@@ -176,7 +194,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public SendOtpResult sendOtp(String relyingPartyId, String clientId, SendOtpDto sendOtpDto) throws MockIdentityException {
         //TODO validate relying party Id and client Id
-
+        log.info("sending the otp>>>>>>>>>>>>");
         IdentityData identityData = identityService.getIdentity(sendOtpDto.getIndividualId());
         if (identityData == null) {
             log.error("Provided individual Id not found {}", sendOtpDto.getIndividualId());
@@ -204,13 +222,72 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             log.error("neither email id nor mobile number found for the given individualId");
             throw new MockIdentityException("no_email_mobile_found");
         }
-
+        //TODO: OTP vaule needs to come from API
+        //TODO: Make a call to get the OTP for a Credential ID
         var trn_token_hash = HelperUtil.generateB64EncodedHash(ALGO_SHA3_256,
-                String.format(sendOtpDto.getTransactionId(), sendOtpDto.getIndividualId(), OTP_VALUE));
+                String.format(sendOtpDto.getTransactionId(), sendOtpDto.getIndividualId(), 
+                fetchOTPFromCredissuer(sendOtpDto.getIndividualId())));
 
         trnHash.add(trn_token_hash);
         return new SendOtpResult(sendOtpDto.getTransactionId(), maskedEmailId, maskedMobile);
     }
+
+    private String fetchOTPFromCredissuer(String individualID) {
+        String otpValue;
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            String otpApiUrl = sendOTPUrl + individualID;
+            ResponseEntity<String> response = restTemplate.getForEntity(otpApiUrl, String.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode rootNode = objectMapper.readTree(response.getBody());
+            otpValue = rootNode.path("otp").asText(); // Assuming the OTP is returned as plain text
+            log.info("OTP value fetched from API: {}", otpValue);
+            return otpValue;
+        } catch (Exception e) {
+            log.error("Error fetching OTP from external API", e);
+            throw new MockIdentityException("otp_fetch_error");
+        }
+    }
+
+    private boolean verifyOTPInCredissuer(String otp, String credentialID) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+    
+            // Create the request body
+            Map<String, String> requestBody = new HashMap<>();
+            requestBody.put("credential_id", credentialID);
+            requestBody.put("otp", otp);
+    
+            // Convert to JSON
+            HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(requestBody);
+    
+            // Make the POST request
+            ResponseEntity<String> response = restTemplate.postForEntity(verifyOTPUrl, requestEntity, String.class);
+    
+            // Check response status and extract the status field from the JSON response
+            if (response.getStatusCode() == HttpStatus.OK) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode rootNode = objectMapper.readTree(response.getBody());
+                String status = rootNode.path("status").asText();
+    
+                // Log and return true if status is "success"
+                if ("success".equals(status)) {
+                    log.info("OTP verified successfully for credential ID: {}", credentialID);
+                    return true;
+                } else {
+                    log.error("OTP verification failed for credential ID: {}", credentialID);
+                    return false;
+                }
+            } else {
+                log.error("Failed to verify OTP. HTTP Status: {}", response.getStatusCode());
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("Error verifying OTP with external API", e);
+            throw new MockIdentityException("otp_verification_error");
+        }
+    }
+    
 
     private boolean validateKnowledgeBasedAuth(KycAuthRequestDto kycAuthRequestDto,IdentityData identityData){
         if(CollectionUtils.isEmpty(fieldDetailList) || StringUtils.isEmpty(fieldLang)){
