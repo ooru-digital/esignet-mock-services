@@ -22,6 +22,8 @@ import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -85,6 +87,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Value("${mosip.esignet.authenticator.credissuer.send-otp-url}")
     private String sendOTPUrl;
+
+    @Value("${mosip.esignet.authenticator.credissuer.bearer-token}")
+    private String credIssuerBeaerToken;
 
     ArrayList<String> trnHash = new ArrayList<>();
 
@@ -235,9 +240,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private String fetchOTPFromCredissuer(String individualID) {
         String otpValue;
         try {
+            HttpHeaders headers = new HttpHeaders();
+		    headers.set("Authorization", "Bearer " + credIssuerBeaerToken);
+		    HttpEntity<String> entity = new HttpEntity<>(headers);
             RestTemplate restTemplate = new RestTemplate();
             String otpApiUrl = sendOTPUrl + individualID;
-            ResponseEntity<String> response = restTemplate.getForEntity(otpApiUrl, String.class);
+            ResponseEntity<String> response = restTemplate.exchange(otpApiUrl, HttpMethod.GET, entity, String.class);
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(response.getBody());
             otpValue = rootNode.path("otp").asText(); // Assuming the OTP is returned as plain text
@@ -251,18 +259,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private boolean verifyOTPInCredissuer(String otp, String credentialID) {
         try {
+            HttpHeaders headers = new HttpHeaders();
+		    headers.set("Authorization", "Bearer " + credIssuerBeaerToken);
+            
             RestTemplate restTemplate = new RestTemplate();
     
+            
             // Create the request body
             Map<String, String> requestBody = new HashMap<>();
             requestBody.put("credential_id", credentialID);
             requestBody.put("otp", otp);
     
             // Convert to JSON
-            HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(requestBody);
+            HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
     
             // Make the POST request
-            ResponseEntity<String> response = restTemplate.postForEntity(verifyOTPUrl, requestEntity, String.class);
+            ResponseEntity<String> response = restTemplate.exchange(verifyOTPUrl, HttpMethod.POST, requestEntity, String.class);
+            //ResponseEntity<String> response = restTemplate.postForEntity(verifyOTPUrl, requestEntity, String.class);
     
             // Check response status and extract the status field from the JSON response
             if (response.getStatusCode() == HttpStatus.OK) {

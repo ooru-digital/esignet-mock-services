@@ -4,6 +4,9 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -29,6 +32,9 @@ public class IdentityServiceImpl implements IdentityService {
 
 	@Value("${mosip.esignet.authenticator.credissuer.identity-details-url}")
     private String identityDetailsUrl;
+
+	@Value("${mosip.esignet.authenticator.credissuer.bearer-token}")
+    private String credIssuerBeaerToken;
 
 	@Override
 	public void addIdentity(IdentityData identityData) throws MockIdentityException {
@@ -64,10 +70,19 @@ public class IdentityServiceImpl implements IdentityService {
 	public IdentityData getIdentity(String individualId) throws MockIdentityException {
 		//get the identity from credissuer
 		RestTemplate restTemplate = new RestTemplate();
+		String identityJson = null;
 		//TODO: This config need to taken from esignet.properties
 		String apiUrl = identityDetailsUrl + individualId;
-		ResponseEntity<String> response = restTemplate.getForEntity(apiUrl, String.class);
-        String identityJson = response.getBody();
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Authorization", "Bearer " + credIssuerBeaerToken);
+		HttpEntity<String> entity = new HttpEntity<>(headers);
+		try {
+			ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.GET, entity, String.class);
+			identityJson = response.getBody();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new MockIdentityException(ErrorConstants.INVALID_INDIVIDUAL_ID);
+		}
 		//System.out.println("Response from API: " + identityJson);
 
 		//Optional<MockIdentity> mockIdentity = identityRepository.findById(individualId);
@@ -78,7 +93,6 @@ public class IdentityServiceImpl implements IdentityService {
 		IdentityData identityData = new IdentityData();
 		try {
 			identityData = objectmapper.readValue(identityJson, IdentityData.class);
-			//System.out.println("identityData>>>>>>>>>>"+identityData);
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 			throw new MockIdentityException(ErrorConstants.JSON_PROCESSING_ERROR);
