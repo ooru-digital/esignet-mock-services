@@ -1,6 +1,6 @@
 window._env_ = {
   ESIGNET_UI_BASE_URL: "https://esignet-mock.collab.mosip.net",
-  MOCK_RELYING_PARTY_SERVER_URL: "https://dev-test.credissuer.com/mock-rely/mock-relying-party-service-1",
+  MOCK_RELYING_PARTY_SERVER_URL: "https://dev-test.credissuer.com/mock-rely"
   REDIRECT_URI_USER_PROFILE: "https://e-sim.credissuer.com/userprofile",
   REDIRECT_URI: "https://e-sim.credissuer.com/userprofile",
   CLIENT_ID: "FynTel-eSim",
