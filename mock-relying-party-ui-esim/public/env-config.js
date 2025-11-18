@@ -1,9 +1,9 @@
 window._env_ = {
   ESIGNET_UI_BASE_URL: "https://esignet-mock.collab.mosip.net",
   MOCK_RELYING_PARTY_SERVER_URL: "https://healthservices-esignet-mock.collab.mosip.net/mock-relying-party-service-1",
-  REDIRECT_URI_USER_PROFILE: "https://healthservices-esignet-mock.collab.mosip.net/userprofile",
-  REDIRECT_URI: "https://healthservices-esignet-mock.collab.mosip.net/userprofile",
-  CLIENT_ID: "88Vjt34c5Twz1oJ",
+  REDIRECT_URI_USER_PROFILE: "https://e-sim.credissuer.com/userprofile",
+  REDIRECT_URI: "https://e-sim.credissuer.com/userprofile",
+  CLIENT_ID: "FynTel-eSim",
   ACRS: "mosip:idp:acr:generated-code%20mosip:idp:acr:biometrics%20mosip:idp:acr:linked-wallet",
   SCOPE_USER_PROFILE: "openid%20profile%20resident-service",
   CLAIMS_USER_PROFILE: "%7B%22userinfo%22:%7B%22given_name%22:%7B%22essential%22:true%7D,%22phone_number%22:%7B%22essential%22:false%7D,%22email%22:%7B%22essential%22:true%7D,%22picture%22:%7B%22essential%22:false%7D,%22gender%22:%7B%22essential%22:false%7D,%22birthdate%22:%7B%22essential%22:false%7D,%22address%22:%7B%22essential%22:false%7D%7D,%22id_token%22:%7B%7D%7D",
